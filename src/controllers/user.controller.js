@@ -145,7 +145,7 @@ const logoutUser = asyncHandler(async (req, res, next) => {
   await User.findByIdAndUpdate(
     req.user._id,
     {
-      $set: { refreshToken: undefined },
+      $unset: { refreshToken: 1 },
     },
     { new: true, runValidators: true }
   );
@@ -169,12 +169,15 @@ const refreshAccessToken = asyncHandler(async (req, res, next) => {
     throw new ApiError(401, "Unauthorized access!");
   }
 
+  console.log("Incoming refresh token: ", incomingRefreshToken);
   try {
     const decodedToken = jwt.verify(
       incomingRefreshToken,
       process.env.REFRESH_TOKEN_SECRET
     );
-    const user = await User.findById(decodedToken._id);
+    console.log("Decoded token: ", decodedToken);
+    const user = await User.findById(decodedToken?._id);
+    console.log("User: ", user);
 
     if (!user) {
       throw new ApiError(401, "Invalid Refresh token!");
@@ -191,6 +194,8 @@ const refreshAccessToken = asyncHandler(async (req, res, next) => {
       httpOnly: true,
       secure: true,
     };
+
+    console.log("New refresh token: ", newRefreshToken);
 
     return res
       .status(200)
@@ -423,7 +428,13 @@ const getWatchHistory = asyncHandler(async (req, res, next) => {
 
   return res
     .status(200)
-    .json(new ApiResponse(200, user[0].watchHistory, "Watch history fetched successfully!"));
+    .json(
+      new ApiResponse(
+        200,
+        user[0].watchHistory,
+        "Watch history fetched successfully!"
+      )
+    );
 });
 
 export {
